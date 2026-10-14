@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="auto">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Instalador do Aura — Display de previsão do tempo</title>
+  <meta name="description" content="Instale o software do Aura, o display inteligente de previsão do tempo com ESP32, direto do navegador. Sem cabos extras, sem programação." />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='38' cy='38' r='18' fill='%23fbbf24'/%3E%3Cpath d='M30 70a16 16 0 0 1 4-31 22 22 0 0 1 42 6 13 13 0 0 1-2 25z' fill='%23e2e8f0'/%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --bg-soft: #eaeff8;
+      --surface: #ffffff;
+      --surface-2: #f1f5fb;
+      --text: #0f172a;
+      --muted: #55627a;
+      --border: #dde4f0;
+      --brand: #2563eb;
+      --brand-2: #06b6d4;
+      --brand-ink: #ffffff;
+      --sun: #f59e0b;
+      --ok: #059669;
+      --warn-bg: #fff7e6;
+      --warn-border: #f5c36b;
+      --warn-text: #7a4b00;
+      --shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 12px 32px -12px rgba(30, 58, 138, .18);
+      --radius: 20px;
+      --hero-from: #dbeafe;
+      --hero-to: #f5f7fb;
+    }
+    :root[data-theme="dark"] {
+      --bg: #0b1220;
+      --bg-soft: #0f1a2e;
+      --surface: #131d33;
+      --surface-2: #17233d;
+      --text: #e8eefb;
+      --muted: #9aa8c4;
+      --border: #24324f;
+      --brand: #5b9bff;
+      --brand-2: #22d3ee;
+      --brand-ink: #06101f;
+      --sun: #fbbf24;
+      --ok: #34d399;
+      --warn-bg: #2a2110;
+      --warn-border: #6b5120;
+      --warn-text: #f3d28a;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 40px -16px rgba(0,0,0,.6);
+      --hero-from: #14264a;
+      --hero-to: #0b1220;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root[data-theme="auto"] {
+        --bg: #0b1220;
+        --bg-soft: #0f1a2e;
+        --surface: #131d33;
+        --surface-2: #17233d;
+        --text: #e8eefb;
+        --muted: #9aa8c4;
+        --border: #24324f;
+        --brand: #5b9bff;
+        --brand-2: #22d3ee;
+        --brand-ink: #06101f;
+        --sun: #fbbf24;
+        --ok: #34d399;
+        --warn-bg: #2a2110;
+        --warn-border: #6b5120;
+        --warn-text: #f3d28a;
+        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 16px 40px -16px rgba(0,0,0,.6);
+        --hero-from: #14264a;
+        --hero-to: #0b1220;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3 { font-family: "Space Grotesk", "Inter", sans-serif; line-height: 1.15; margin: 0; letter-spacing: -.01em; }
+    a { color: var(--brand); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    .wrap { width: min(1040px, 100% - 32px); margin-inline: auto; }
+
+    /* Topbar */
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      backdrop-filter: saturate(1.4) blur(14px);
+      background: color-mix(in srgb, var(--bg) 78%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar .wrap { display: flex; align-items: center; justify-content: space-between; height: 62px; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-family: "Space Grotesk"; font-weight: 700; font-size: 1.15rem; color: var(--text); text-decoration: none; }
+    .brand svg { width: 30px; height: 30px; }
+    .nav { display: flex; align-items: center; gap: 6px; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: .92rem; font-weight: 500; padding: 8px 12px; border-radius: 10px; }
+    .nav a:hover { color: var(--text); background: var(--surface-2); }
+    .icon-btn {
+      border: 1px solid var(--border); background: var(--surface); color: var(--text);
+      width: 40px; height: 40px; border-radius: 12px; cursor: pointer; display: grid; place-items: center;
+    }
+    .icon-btn:hover { background: var(--surface-2); }
+    @media (max-width: 720px) { .nav a { display: none; } }
+
+    /* Hero */
+    .hero {
+      background:
+        radial-gradient(900px 400px at 85% -10%, color-mix(in srgb, var(--brand-2) 28%, transparent), transparent 70%),
+        radial-gradient(700px 360px at 0% 0%, color-mix(in srgb, var(--brand) 22%, transparent), transparent 70%),
+        linear-gradient(180deg, var(--hero-from), var(--hero-to));
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .hero .wrap { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 64px 0 72px; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px; font-size: .8rem; font-weight: 600; letter-spacing: .04em;
+      text-transform: uppercase; color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, transparent);
+      padding: 6px 12px; border-radius: 999px; margin-bottom: 18px;
+    }
+    .hero h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 700; }
+    .hero h1 span { background: linear-gradient(90deg, var(--brand), var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .lead { font-size: 1.12rem; color: var(--muted); margin: 18px 0 26px; max-width: 54ch; }
+    .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; }
+    .chip { display: inline-flex; align-items: center; gap: 8px; font-size: .88rem; font-weight: 500; background: var(--surface); border: 1px solid var(--border); padding: 8px 14px; border-radius: 999px; }
+    .chip b { color: var(--ok); }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 12px; }
+
+    .btn {
+      font: inherit; font-weight: 600; font-size: 1rem; cursor: pointer; border: 0; text-decoration: none;
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 14px 24px; border-radius: 14px; transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, var(--brand-2))); color: var(--brand-ink); box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--brand) 70%, transparent); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 30px -10px color-mix(in srgb, var(--brand) 80%, transparent); }
+    .btn-ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--surface-2); }
+    .btn svg { width: 20px; height: 20px; flex: none; }
+
+    .hero-art { position: relative; }
+    .hero-art .frame {
+      position: relative; border-radius: 28px; padding: 10px;
+      background: linear-gradient(145deg, color-mix(in srgb, var(--brand) 40%, var(--surface)), color-mix(in srgb, var(--brand-2) 40%, var(--surface)));
+      box-shadow: var(--shadow); transform: rotate(1.5deg);
+    }
+    .hero-art img { display: block; width: 100%; height: auto; border-radius: 20px; background: var(--surface-2); aspect-ratio: 4/3; object-fit: cover; }
+    .float {
+      position: absolute; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+      border-radius: 16px; padding: 10px 14px; font-size: .85rem; font-weight: 600; display: flex; align-items: center; gap: 8px;
+    }
+    .float.f1 { left: -18px; bottom: 28px; }
+    .float.f2 { right: -10px; top: -14px; }
+    @media (max-width: 880px) {
+      .hero .wrap { grid-template-columns: 1fr; padding: 44px 0 52px; }
+      .float.f1 { left: 6px; } .float.f2 { right: 6px; }
+    }
+
+    /* Seções */
+    section { padding: 64px 0 8px; }
+    .section-head { margin-bottom: 28px; }
+    .section-head h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); }
+    .section-head p { color: var(--muted); margin: 10px 0 0; max-width: 62ch; }
+
+    .notice {
+      display: none; gap: 12px; align-items: flex-start; background: var(--warn-bg); color: var(--warn-text);
+      border: 1px solid var(--warn-border); border-radius: 16px; padding: 14px 18px; margin-bottom: 24px;
+    }
+    .notice.show { display: flex; }
+    .notice svg { width: 22px; height: 22px; flex: none; margin-top: 2px; }
+
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 0; margin: 0 0 32px; list-style: none; counter-reset: step; }
+    .steps li {
+      counter-increment: step; position: relative; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px 20px 20px; box-shadow: var(--shadow);
+    }
+    .steps li::before {
+      content: counter(step); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: var(--brand-ink);
+      font-family: "Space Grotesk"; font-weight: 700; margin-bottom: 14px;
+    }
+    .steps h3 { font-size: 1.02rem; margin-bottom: 6px; }
+    .steps p { margin: 0; font-size: .93rem; color: var(--muted); }
+    @media (max-width: 960px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .steps { grid-template-columns: 1fr; } }
+
+    .cards { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; }
+    @media (max-width: 860px) { .cards { grid-template-columns: 1fr; } }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); }
+    .card.featured { border-color: color-mix(in srgb, var(--brand) 55%, var(--border)); background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 7%, var(--surface)), var(--surface)); }
+    .badge { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); margin-bottom: 12px; }
+    .badge.alt { background: color-mix(in srgb, var(--sun) 18%, transparent); color: var(--sun); }
+    .card h3 { font-size: 1.35rem; margin-bottom: 8px; }
+    .card p { color: var(--muted); margin: 0 0 20px; font-size: .96rem; }
+    .swatches { display: flex; gap: 6px; margin-bottom: 18px; }
+    .swatches i { width: 28px; height: 28px; border-radius: 9px; border: 1px solid var(--border); }
+
+    esp-web-install-button { display: block; }
+    esp-web-install-button button[slot] { width: 100%; }
+    .fallback-msg { color: var(--muted); font-size: .92rem; margin: 0; }
+
+    /* Aviso rápido */
+    .tips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 22px; }
+    @media (max-width: 760px) { .tips { grid-template-columns: 1fr; } }
+    .tip { background: var(--surface-2); border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; font-size: .92rem; color: var(--muted); }
+    .tip b { color: var(--text); display: block; margin-bottom: 2px; }
+
+    /* Solução de problemas */
+    details {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px;
+      box-shadow: var(--shadow); overflow: hidden;
+    }
+    summary {
+      cursor: pointer; list-style: none; padding: 18px 22px; font-weight: 600; display: flex; align-items: center; gap: 14px;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary .n {
+      flex: none; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center;
+      background: var(--surface-2); border: 1px solid var(--border); font-size: .85rem; color: var(--brand); font-family: "Space Grotesk";
+    }
+    summary::after { content: "+"; margin-left: auto; font-size: 1.4rem; color: var(--muted); transition: transform .2s ease; }
+    details[open] summary::after { transform: rotate(45deg); }
+    details .body { padding: 0 22px 20px 66px; color: var(--muted); font-size: .96rem; }
+    details .body p { margin: 0 0 8px; }
+    .kbd {
+      display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; font-weight: 600;
+      padding: 1px 8px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+    }
+    @media (max-width: 520px) { details .body { padding-left: 22px; } }
+
+    /* Versões */
+    .timeline { position: relative; margin: 0; padding: 0 0 0 26px; list-style: none; }
+    .timeline::before { content: ""; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
+    .timeline li { position: relative; margin-bottom: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px; }
+    .timeline li::before { content: ""; position: absolute; left: -26px; top: 22px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 3px solid var(--brand); }
+    .timeline li:first-child::before { background: var(--brand); }
+    .ver { display: inline-block; font-family: "Space Grotesk"; font-weight: 700; margin-right: 10px; }
+    .latest { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); padding: 3px 8px; border-radius: 999px; margin-left: 4px; }
+    .timeline p { margin: 6px 0 0; color: var(--muted); font-size: .95rem; }
+
+    /* Rodapé */
+    footer { margin-top: 72px; border-top: 1px solid var(--border); background: var(--bg-soft); padding: 36px 0 48px; color: var(--muted); font-size: .9rem; }
+    footer .cols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; }
+    @media (max-width: 720px) { footer .cols { grid-template-columns: 1fr; } }
+    footer p { margin: 0 0 8px; }
+    footer ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+
+    :focus-visible { outline: 3px solid color-mix(in srgb, var(--brand) 60%, transparent); outline-offset: 3px; border-radius: 8px; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="#topo" aria-label="Instalador do Aura">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="38" cy="38" r="18" fill="#fbbf24"/><path d="M30 72a16 16 0 0 1 4-31 22 22 0 0 1 42 6 13 13 0 0 1-2 25z" fill="#cbd5e1"/></svg>
+        Aura Installer
+      </a>
+      <nav class="nav" aria-label="Seções">
+        <a href="#instalar">Instalar</a>
+        <a href="#problemas">Problemas?</a>
+        <a href="#versoes">Versões</a>
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="Alternar tema claro/escuro" title="Alternar tema">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="topo">
+    <!-- HERO -->
+    <div class="hero">
+      <div class="wrap">
+        <div>
+          <span class="eyebrow">☀️ Código aberto · ESP32</span>
+          <h1>Instale o <span>Aura</span> direto do navegador</h1>
+          <p class="lead">
+            O Aura é um display inteligente de previsão do tempo para a sua casa. É open source,
+            custa menos de US$ 20 para montar e fica pronto em segundos — sem fios e sem solda.
+          </p>
+          <div class="chips">
+            <span class="chip"><b>✓</b> Sem programar</span>
+            <span class="chip"><b>✓</b> Sem instalar drivers extras</span>
+            <span class="chip"><b>✓</b> Leva ~1 minuto</span>
+          </div>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="#instalar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+              Começar a instalação
+            </a>
+            <a class="btn btn-ghost" href="https://makerworld.com/en/models/1382304-aura-smart-weather-forecast-display" target="_blank" rel="noopener">Instruções completas do projeto ↗</a>
+          </div>
+        </div>
+        <div class="hero-art">
+          <div class="frame">
+            <img src="img/main_sun_daily.png" alt="Nova tela do Aura BR mostrando a previsão do tempo" loading="eager" onerror="this.style.minHeight='240px'" />
+          </div>
+          <div class="float f1">🌤️ Previsão por hora</div>
+          <div class="float f2">🌙 Modo noturno</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSTALAÇÃO -->
+    <section id="instalar">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Instalação do software</h2>
+          <p>Esta página serve somente para gravar o software na placa ESP32. A montagem e o restante do projeto estão nas instruções completas do Aura.</p>
+        </div>
+
+        <div class="notice" id="browserNotice" role="alert">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <div><strong>Navegador não compatível.</strong> A gravação via USB só funciona no <strong>Google Chrome</strong> ou no <strong>Microsoft Edge</strong> (no computador). Abra esta página em um deles para continuar.</div>
+        </div>
+
+        <ol class="steps">
+          <li>
+            <h3>Conecte a placa</h3>
+            <p>Ligue sua placa <strong>ESP32-2432S028R ILI9341</strong> (tela de 2,8") a uma porta USB do computador.</p>
+          </li>
+          <li>
+            <h3>Clique em “Conectar”</h3>
+            <p>Use o botão abaixo. <strong>Funciona apenas no Google Chrome ou Microsoft Edge.</strong></p>
+          </li>
+          <li>
+            <h3>Escolha a porta</h3>
+            <p>Quando o navegador pedir, selecione a porta chamada <strong>“USB Serial”</strong>.</p>
+          </li>
+          <li>
+            <h3>Instale o Aura</h3>
+            <p>Clique em <strong>“Install Aura”</strong> (ou “Instalar”) e aguarde a barra de progresso terminar.</p>
+          </li>
+        </ol>
+
+        <div class="cards">
+          <article class="card featured">
+            <span class="badge">Recomendado</span>
+            <h3>Versão padrão</h3>
+            <p>A instalação mais comum. Use esta opção primeiro — a tela deve exibir as cores corretas.</p>
+            <esp-web-install-button manifest="bin/manifest.json">
+              <button slot="activate" class="btn btn-primary" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                Conectar e instalar o Aura
+              </button>
+              <span slot="unsupported" class="fallback-msg">Seu navegador não permite a gravação via USB. Use o Google Chrome ou o Microsoft Edge no computador.</span>
+              <span slot="not-allowed" class="fallback-msg">Esta página precisa ser aberta por HTTPS para acessar a porta USB.</span>
+            </esp-web-install-button>
+          </article>
+
+          <article class="card">
+            <span class="badge alt">Correção</span>
+            <h3>Cores invertidas</h3>
+            <p>Algumas placas guardam as cores de forma diferente na memória e a tela aparece com as cores erradas. Se isso aconteceu, instale esta versão.</p>
+            <div class="swatches" aria-hidden="true">
+              <i style="background:#ef4444"></i><i style="background:#22c55e"></i><i style="background:#3b82f6"></i><i style="background:#facc15"></i>
+            </div>
+            <esp-web-install-button manifest="bin/manifest-inverted.json">
+              <button slot="activate" class="btn btn-ghost" type="button">Instalar correção de cores</button>
+              <span slot="unsupported" class="fallback-msg">Use o Google Chrome ou o Microsoft Edge no computador.</span>
+              <span slot="not-allowed" class="fallback-msg">Abra esta página por HTTPS para continuar.</span>
+            </esp-web-install-button>
+          </article>
+        </div>
+
+        <div class="tips">
+          <div class="tip"><b>🔌 Cabo de dados</b>Use um cabo USB que transfira dados — alguns cabos servem só para carregar.</div>
+          <div class="tip"><b>⏱️ Não desconecte</b>Deixe a placa ligada até a instalação terminar por completo.</div>
+          <div class="tip"><b>🔄 Atualizar</b>Para ter a versão mais recente, basta instalar novamente.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROBLEMAS -->
+    <section id="problemas">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Ajuda! A instalação trava em “Preparing to Install”</h2>
+          <p>Essa etapa deve passar rápido. Se travar, a placa não está conectada corretamente ou não entrou no modo de atualização. Existem vários modelos de placa, e cada um pode precisar de um jeito diferente. Estas são as soluções mais comuns:</p>
+        </div>
+
+        <details>
+          <summary><span class="n">1</span> Confira a porta selecionada</summary>
+          <div class="body"><p>Na lista de portas, escolha sempre a que aparece como <strong>“USB Serial”</strong>.</p></div>
+        </details>
+        <details>
+          <summary><span class="n">2</span> Segure o botão RST durante o início</summary>
+          <div class="body"><p>Algumas placas precisam ser forçadas ao modo de gravação: <strong>mantenha pressionado o botão <span class="kbd">RST</span> enquanto inicia a instalação.</strong></p>
+          <p><a href="https://i0.wp.com/randomnerdtutorials.com/wp-content/uploads/2024/03/ESP32-Cheap-Yellow-Display-CYD-Board-ESP32-2432S028R-back-labeled.jpg" target="_blank" rel="noopener">Ver foto da parte de trás da placa ↗</a></p></div>
+        </details>
+        <details>
+          <summary><span class="n">3</span> Sequência BOOT + RST</summary>
+          <div class="body"><p>Outras placas exigem esta sequência: <strong>pressione e segure o botão <span class="kbd">BOOT</span>, pressione e solte o botão <span class="kbd">RST</span> e, por fim, solte o botão <span class="kbd">BOOT</span>.</strong></p>
+          <p><a href="https://i0.wp.com/randomnerdtutorials.com/wp-content/uploads/2024/03/ESP32-Cheap-Yellow-Display-CYD-Board-ESP32-2432S028R-back-labeled.jpg" target="_blank" rel="noopener">Ver onde ficam os botões ↗</a></p></div>
+        </details>
+        <details>
+          <summary><span class="n">4</span> Teste as duas portas USB</summary>
+          <div class="body"><p>Placas com duas portas (USB-C e Micro USB) às vezes só aceitam gravação por uma delas. Muitas placas USB-C gravam normalmente pela USB-C, mas algumas só funcionam pela <strong>Micro USB</strong>. Tente as duas.</p></div>
+        </details>
+        <details>
+          <summary><span class="n">5</span> Troque o cabo USB</summary>
+          <div class="body"><p>Vários usuários relataram que o cabo barato que acompanha a placa não funcionou, e que ao usar outro cabo tudo deu certo.</p></div>
+        </details>
+
+        <p style="color:var(--muted); font-size:.9rem; margin-top:14px;">
+          Nota: a foto da placa é do artigo do
+          <a href="https://randomnerdtutorials.com/esp32-cheap-yellow-display-cyd-pinout-esp32-2432s028r/" target="_blank" rel="noopener">Random Nerd Tutorials</a>
+          — um ótimo site para aprender mais sobre essas placas.
+        </p>
+      </div>
+    </section>
+
+    <!-- VERSÕES -->
+    <section id="versoes">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Atualizações do software</h2>
+          <p>Para atualizar para a versão mais recente, basta instalar o software novamente pelos botões acima.</p>
+        </div>
+        <ol class="timeline">
+          <li><span class="ver">v1.4</span><span class="latest">Mais recente</span><p>Modo noturno (a tela escurece automaticamente após as 22h) e novas traduções para sueco, turco e italiano.</p></li>
+          <li><span class="ver">v1.3.1</span><p>Correção de uma tradução que estava faltando para “Sensação térmica”.</p></li>
+          <li><span class="ver">v1.3</span><p>Seleção de idioma com suporte a espanhol, francês e alemão. Possibilidade de escurecer mais a tela.</p></li>
+          <li><span class="ver">v1.2</span><p>Opção de exibir a hora no formato 12/24 horas e correção de um erro na previsão por hora que mostrava os ícones de sol e lua nos horários errados.</p></li>
+          <li><span class="ver">v1.1</span><p>Adicionada a hora atual na tela.</p></li>
+          <li><span class="ver">v1.0</span><p>Lançamento inicial.</p></li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap cols">
+      <div>
+        <p><strong style="color:var(--text)">Instalador do Aura em português (pt-BR)</strong></p>
+        <p>Versão não oficial desta página, traduzida e redesenhada. O projeto Aura e o firmware são de
+          <a href="https://github.com/Surrey-Homeware/aura-installer" target="_blank" rel="noopener">Surrey Homeware</a>.
+          A interface do instalador (janela de gravação) é fornecida pelo
+          <a href="https://esphome.github.io/esp-web-tools/" target="_blank" rel="noopener">ESP Web Tools</a> e permanece em inglês.</p>
+      </div>
+      <div>
+        <ul>
+          <li><a href="https://makerworld.com/en/models/1382304-aura-smart-weather-forecast-display" target="_blank" rel="noopener">Projeto completo no MakerWorld ↗</a></li>
+          <li><a href="https://makerworld.com/en/models/1751995-aura-laser-edition-smart-weather-forecast-display" target="_blank" rel="noopener">Aura Laser Edition (para quem tem cortadora a laser) ↗</a></li>
+          <li><a href="https://github.com/Surrey-Homeware/aura-installer" target="_blank" rel="noopener">Código do instalador original ↗</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ESP Web Tools -->
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+
+  <script>
+    // Aviso de navegador incompatível (Web Serial só existe em Chrome/Edge no desktop)
+    (function () {
+      if (!('serial' in navigator)) {
+        var n = document.getElementById('browserNotice');
+        if (n) n.classList.add('show');
+      }
+    })();
+
+    // Alternância de tema (claro/escuro) com memória local
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById('themeToggle');
+      try {
+        var saved = localStorage.getItem('aura-theme');
+        if (saved === 'light' || saved === 'dark') root.setAttribute('data-theme', saved);
+      } catch (e) {}
+      btn.addEventListener('click', function () {
+        var current = root.getAttribute('data-theme');
+        var isDark = current === 'dark' || (current === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var next = isDark ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('aura-theme', next); } catch (e) {}
+      });
+    })();
+  </script>
+</body>
+</html>

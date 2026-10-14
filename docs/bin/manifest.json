@@ -1,0 +1,1 @@
+{"name":"Aura pt-BR","version":"2.0-ptbr","new_install_prompt_erase":true,"builds":[{"chipFamily":"ESP32","parts":[{"path":"aura-ptbr.bin","offset":0}]}]}
